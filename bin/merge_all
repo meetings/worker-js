@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eu
+
+FROM=${1:-}
+
+if [ -z "$FROM" ]; then
+  FROM=$(git rev-parse --abbrev-ref HEAD)
+fi
+
+git stash
+
+for X in dev local beta master; do
+  if [ "$FROM" != "$X" ]; then
+    git checkout $X
+    git merge $FROM
+  fi
+done
+
+git checkout $FROM
+
+git stash pop

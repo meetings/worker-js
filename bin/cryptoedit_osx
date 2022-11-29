@@ -1,0 +1,40 @@
+#!/bin/bash
+
+GWHOST=kivi
+
+MODE=$1
+FILE=$2
+CLASS=$3
+
+if [[ "$OSTYPE" != darwin* ]]
+then
+  exit 0
+fi
+
+if [ "$MODE" == 'edit' ]
+then
+  if [ ! -d /Volumes/rdsecrets/ ]
+  then
+    diskutil erasevolume HFS+ "rdsecrets" `hdiutil attach -nomount ram://2048`
+  fi
+  cat $FILE | ssh $GWHOST sudo su keeper -c '"'gpg --homedir /run/gpg --decrypt'"' > /Volumes/rdsecrets/file
+  echo
+  echo "      ^^^^ -- FIRST WORD ABOVE IS YOUR KEY NAME"
+  echo
+  echo "Great! First note the key name above."
+  echo
+  echo "Next edit the file /Volumes/rdsecrets/file"
+  echo
+  echo "After editing run this:"
+  echo
+  echo "$0 save $2 [key_name_from_above]"
+elif [ "$MODE" == 'save' ]
+then
+  cat /Volumes/rdsecrets/file | ssh $GWHOST sudo su keeper -c '"'gpg --homedir /run/gpg -a --encrypt --recipient $CLASS'"' > $FILE
+  hdiutil detach /Volumes/rdsecrets/
+else
+  echo "USAGE: $0 [edit|save] FILE CLASS"
+  echo "  * Run edit to start editing an encrypted file"
+  echo "  * Run save after editing to encrypt and wipe the file"
+  echo "  * CLASS is a security domain key eg. 'nag'"
+fi
